@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ develop ]
+
+jobs:
+  build-and-smoke:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Install backend deps
+        working-directory: autotest-tool/backend
+        run: |
+          npm install
+      - name: Install frontend deps
+        working-directory: autotest-tool/frontend
+        run: |
+          npm install
+      - name: Start backend in background
+        working-directory: autotest-tool/backend
+        run: |
+          start /b cmd /c "npm start"
+      - name: Wait for backend
+        run: |
+          powershell -Command "Start-Sleep -s 5"
+      - name: Run merge reports (smoke)
+        working-directory: autotest-tool/backend
+        run: |
+          node scripts/merge_reports.js
+      - name: Upload reports artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports
+          path: autotest-tool/backend/reports
